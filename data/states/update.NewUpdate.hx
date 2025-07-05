@@ -75,6 +75,22 @@ function create() {
 
 }
 
+var colorFormatting = [
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.RED), "<r>"),
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.GREEN), "<g>"),
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.LIME), "<l>"),
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.BLUE), "<b>"),
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.YELLOW), "<y>"),
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.CYAN), "<c>"),
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.MAGENTA), "<m>"),
+    new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.PURPLE), "<pu>"),
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.PINK), "<pi>"),
+	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.ORANGE), "<o>"),
+    new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.BROWN), "<b>"),
+    new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.GREY), "<gray>"),
+];
+
+//region Initalizers
 function initCommitInfo() {
 
     var cam = commitInfoCamera;
@@ -262,21 +278,8 @@ function initSelection() {
     add(checkGithubText);
 
 }
+//endregion
 
-var colorFormatting = [
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.RED), "<r>"),
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.GREEN), "<g>"),
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.LIME), "<l>"),
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.BLUE), "<b>"),
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.YELLOW), "<y>"),
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.CYAN), "<c>"),
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.MAGENTA), "<m>"),
-    new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.PURPLE), "<pu>"),
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.PINK), "<pi>"),
-	new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.ORANGE), "<o>"),
-    new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.BROWN), "<b>"),
-    new FlxTextFormatMarkerPair(new FlxTextFormat(FlxColor.GREY), "<gray>"),
-];
 
 function update(elapsed:Float) {
     avatar?.shader?.iTime += elapsed;
