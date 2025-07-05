@@ -17,7 +17,7 @@ var bg:FlxSprite = new FlxSprite().makeSolid(FlxG.width, FlxG.height, 0xFF5E446E
 var topBG = new FlxSprite().loadGraphic(Paths.image("updater/menuUpdater"));
 
 
-var roundedEdges:Int = 10;
+var roundedEdges:Int = 12;
 var cameraPadding:Int = 35;
 var bgColor:FlxColor = 0x60000000;
 var commitInformationBG = new FlxSprite().makeGraphic(350, FlxG.height * 0.95, bgColor);
@@ -137,7 +137,7 @@ function initCommitInfo() {
 		avatar.loadGraphic(bitmap);
 		avatar.setGraphicSize(92, 92);
         avatar.updateHitbox();
-        avatar.shader = new CustomShader("update.circleProfilePicture");
+        avatar.shader = new CustomShader("engine/circleProfilePicture");
         avatar.x = (cam.width - avatar.width) - avatarOutlineSize;
         avatar.y = seperator1.y + seperator1.height + 10;
 
