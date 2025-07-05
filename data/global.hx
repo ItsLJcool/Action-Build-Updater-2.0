@@ -184,6 +184,7 @@ static function centerToCamera(sprite:FlxSprite) {
 
 function preStateSwitch() {
     if (needsUpdate) {
+        needsUpdate = false;
         FlxG.game._requestedState = new ModState("update.NewUpdate");
     }
 }
