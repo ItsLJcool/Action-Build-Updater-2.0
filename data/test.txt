@@ -1,0 +1,1 @@
+- This is a <r>test<r> on formatting files with <g>coloring<g>

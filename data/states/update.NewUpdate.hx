@@ -10,6 +10,7 @@ import openfl.geom.ColorTransform;
 import flixel.group.FlxTypedSpriteGroup;
 
 import openfl.display.BitmapData;
+import flixel.math.FlxRect;
 
 final FileUtil = new MultiThreadedScript(Paths.script("data/utils/FileUtil"), this);
 
@@ -18,30 +19,43 @@ var topBG = new FlxSprite().loadGraphic(Paths.image("updater/menuUpdater"));
 
 
 var roundedEdges:Int = 12;
-var cameraPadding:Int = 35;
-var bgColor:FlxColor = 0x60000000;
-var commitInformationBG = new FlxSprite().makeGraphic(350, FlxG.height * 0.95, bgColor);
+var cameraPadding:FlxPoint = FlxPoint.get(35, 1);
+var commitInformationBG = new FlxSprite().makeGraphic(350, FlxG.height * 0.95, FlxColor.BLACK);
+commitInformationBG.alpha = 0.5;
 
-var commitInfoCamera = new FlxCamera(0, 0, commitInformationBG.width - cameraPadding, commitInformationBG.height - cameraPadding);
+var commitInfoCamera = new FlxCamera(0, 0, commitInformationBG.width - cameraPadding.x, commitInformationBG.height - cameraPadding.y);
 commitInfoCamera.bgColor = 0;
 
-var fileChangesBG = new FlxSprite().makeGraphic(FlxG.width * 0.65, FlxG.height * 0.75, bgColor);
-var fileChangesCamera = new FlxCamera(0, 0, fileChangesBG.width - cameraPadding, fileChangesBG.height - cameraPadding);
+var fileChangesBG = new FlxSprite().makeGraphic(FlxG.width * 0.65, FlxG.height * 0.75, FlxColor.BLACK);
+fileChangesBG.alpha = 0.5;
+
+var fileChangesCamera = new FlxCamera(0, 0, fileChangesBG.width - cameraPadding.x, fileChangesBG.height - cameraPadding.y);
 fileChangesCamera.bgColor = 0;
 
-var selectionBG = new FlxSprite().makeGraphic(fileChangesBG.width, FlxG.height * 0.15, bgColor);
+var selectionBG = new FlxSprite().makeGraphic(fileChangesBG.width, FlxG.height * 0.15, FlxColor.BLACK);
+selectionBG.alpha = 0.5;
 
+var commitGroup = new FlxTypedSpriteGroup();
+var fileChangesGroup = new FlxTypedSpriteGroup();
+
+var topCamera = new FlxCamera();
+topCamera.bgColor = 0;
 function create() {
+
+    FlxG.mouse.visible = true;
 
     FlxG.cameras.add(commitInfoCamera, false);
     FlxG.cameras.add(fileChangesCamera, false);
+    FlxG.cameras.add(topCamera, false);
 
     bg.screenCenter();
+    bg.scrollFactor.set();
     add(bg);
 
 	topBG.setGraphicSize(FlxG.width + 5, FlxG.height + 5);
     topBG.updateHitbox();
     topBG.screenCenter();
+    topBG.scrollFactor.set();
     add(topBG);
 
     add_roundedShader(commitInformationBG, roundedEdges);
@@ -49,29 +63,40 @@ function create() {
     commitInformationBG.x = FlxG.width * 0.03;
     add(commitInformationBG);
 
-    commitInfoCamera.x = commitInformationBG.x + (cameraPadding * 0.5);
-    commitInfoCamera.y = commitInformationBG.y + (cameraPadding * 0.5);
+    commitInfoCamera.x = commitInformationBG.x + (cameraPadding.x * 0.5);
+    commitInfoCamera.y = commitInformationBG.y + (cameraPadding.y * 0.5);
 
     add_roundedShader(fileChangesBG, roundedEdges);
     fileChangesBG.x = (FlxG.width - fileChangesBG.width) * 0.95;
     fileChangesBG.y = commitInformationBG.y;
     add(fileChangesBG);
 
-    fileChangesCamera.x = fileChangesBG.x + (cameraPadding * 0.5);
-    fileChangesCamera.y = fileChangesBG.y + (cameraPadding * 0.5);
+    fileChangesCamera.x = fileChangesBG.x + (cameraPadding.x * 0.5);
+    fileChangesCamera.y = fileChangesBG.y + (cameraPadding.y * 0.5);
 
     add_roundedShader(selectionBG, roundedEdges);
     selectionBG.x = fileChangesBG.x;
     selectionBG.y = FlxG.height - selectionBG.height - 20;
     add(selectionBG);
 
-    initCommitInfo();
+    commitGroup.camera = commitInfoCamera;
+    add(commitGroup);
+    initCommitInfo(commitGroup);
 
-    initFileChangesInfo();
+    fileChangesGroup.camera = fileChangesCamera;
+    add(fileChangesGroup);
+    initFileChangesInfo(fileChangesGroup);
 
     initSelection();
 
     trace("hasArtifact: " + updateInformation.hasArtifact);
+
+    fadeSpr = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
+    fadeSpr.alpha = 0;
+    fadeSpr.screenCenter();
+    fadeSpr.scrollFactor.set();
+    fadeSpr.camera = topCamera;
+    add(fadeSpr);
 
 }
 
@@ -91,30 +116,28 @@ var colorFormatting = [
 ];
 
 //region Initalizers
-function initCommitInfo() {
+function initCommitInfo(group:FlxTypedSpriteGroup) {
 
     var cam = commitInfoCamera;
 
     var commitNumber = new FlxText(0, 10, cam.width, updateInformation.commitTitle);
-    commitNumber.camera = cam;
     commitNumber.setFormat(Paths.font("Funkin.ttf"), 34, FlxColor.WHITE, "left", FlxTextBorderStyle.OUTLINE, 0xFF684776);
     commitNumber.borderSize = 3;
-    add(commitNumber);
+    group.add(commitNumber);
 
     var seperator1 = makeSeperator(cam.width, 1.5, 0xFFAE8CAE);
     seperator1.camera = cam;
     centerToCamera(seperator1);
     seperator1.y = commitNumber.y + commitNumber.height + 10;
-    add(seperator1);
+    group.add(seperator1);
 
     var avatarOutlineSize:Float = 8;
     avatar = new FlxSprite().makeGraphic(92, 92, 0xFFFFFFFF);
-    avatar.camera = cam;
     avatar.shader = new CustomShader("loading");
     avatar.shader.iTime = 0;
     avatar.x = (cam.width - avatar.width) - avatarOutlineSize;
     avatar.y = seperator1.y + seperator1.height + 10;
-    add(avatar);
+    group.add(avatar);
 
     var avatarLoaded = false;
     var outlineColor = new ColorTransform();
@@ -144,13 +167,12 @@ function initCommitInfo() {
         avatarLoaded = true;
 	}]);
 
-    var title = new FlxText(0, 0, cam.width - avatar.width, updateInformation.title);
-    title.camera = cam;
+    var title = new FlxText(0, 0, cam.width - avatar.width - (avatarOutlineSize + 2), updateInformation.title);
     title.setFormat(Paths.font("Funkin.ttf"), 20, FlxColor.WHITE, "left", FlxTextBorderStyle.OUTLINE, 0xFF684776);
     title.borderSize = 2;
     title.updateHitbox();
     title.y = avatar.y;
-    add(title);
+    group.add(title);
 
     var maxY = (avatar.y + avatar.height > title.y + title.height) ? avatar.y + avatar.height : title.y + title.height;
 
@@ -158,22 +180,23 @@ function initCommitInfo() {
     seperator2.camera = cam;
     centerToCamera(seperator2);
     seperator2.y = maxY + 10;
-    add(seperator2);
+    group.add(seperator2);
 
     var commitMessagesString = "";
     for (message in updateInformation.messages) commitMessagesString += message+"\n";
 
+    // commitMessagesString = Assets.getText(Paths.getPath('data/test.txt'));
+
     var commitMessages = new FlxText(0, 0, cam.width, commitMessagesString);
-    commitMessages.camera = cam;
     commitMessages.setFormat(Paths.font("Funkin.ttf"), 20, FlxColor.WHITE, "left", FlxTextBorderStyle.OUTLINE, 0xFF6D5A70);
     commitMessages.borderSize = 1;
     commitMessages.updateHitbox();
     commitMessages.y = seperator2.y + seperator2.height + 10;
     commitMessages.applyMarkup(commitMessages.text, colorFormatting);
-    add(commitMessages);
+    group.add(commitMessages);
 }
 
-function initFileChangesInfo() {
+function initFileChangesInfo(group:FlxTypedSpriteGroup) {
     
     var cam = fileChangesCamera;
 
@@ -182,12 +205,25 @@ function initFileChangesInfo() {
     title.setFormat(Paths.font("Funkin.ttf"), 36, FlxColor.WHITE, "left", FlxTextBorderStyle.OUTLINE, 0xFF684776);
     title.borderSize = 3;
     title.updateHitbox();
-    add(title);
+    group.add(title);
 
     for (idx=>file in updateInformation.files) {
         var groupTest = _addFileChanges(file, idx);
         groupTest.y = (title.y + title.height + 20)*(idx+1);
+        group.add(groupTest);
     }
+    // testing
+    // for (idx in 0...10) {
+    //     var file = updateInformation.files[0];
+    //     var groupTest = _addFileChanges(file, idx);
+    //     groupTest.y = (title.y + title.height + 20)*(idx+1);
+    //     group.add(groupTest);
+    // }
+
+    var pumpSpr = new FlxSprite().makeSolid(1, 25);
+    pumpSpr.y = group.height;
+    pumpSpr.visible = pumpSpr.exists = false;
+    group.add(pumpSpr);
 
 }
 
@@ -198,7 +234,6 @@ function _addFileChanges(fileData:Dynamic, idx:Int, ?height:Int = 60) {
     var group = new FlxTypedSpriteGroup();
     group.ID = idx;
     group.camera = cam;
-    add(group);
 
     var name = fileData.filename.split("/").pop();
     var fileName = new FlxText(0, 0, cam.width * 0.85, name);
@@ -281,12 +316,57 @@ function initSelection() {
 //endregion
 
 
+var inputMenu:Bool = true;
 function update(elapsed:Float) {
     avatar?.shader?.iTime += elapsed;
 
-    if (controls.BACK) FlxG.switchState(new BetaWarningState());
+    if (controls.BACK && inputMenu) {
+        inputMenu = false;
+        FlxG.switchState(new BetaWarningState());
+    }
+    
+    if (controls.ACCEPT) selectionTime();
+
+    // if (FlxG.keys.justPressed.K) FlxTween.tween(window, {opacity: 0.5}, 0.5, {ease: FlxEase.expoInOut});
 
     // bg?.shader?.iTime += elapsed;
+
+    updateCommitInfoScroll(elapsed);
+    updateFileChangesScroll(elapsed);
+}
+
+//region Scroll updaters
+
+var commitScroll:Float = 0;
+function updateCommitInfoScroll(elapsed:Float) {
+    if (FlxG.mouse.wheel != 0 && FlxG.mouse.overlaps(commitInformationBG)) commitScroll += FlxG.mouse.wheel * 35;
+    var cam = commitInfoCamera;
+
+    var maxBound = Math.max(0, commitGroup.height - (cam.height - (cameraPadding.y)));
+    commitScroll = FlxMath.bound(commitScroll, 0, maxBound);
+
+    cam.scroll.y = lerp(cam.scroll.y, commitScroll, 0.15);
+}
+
+var fileChangesScroll:Float = 0;
+function updateFileChangesScroll(elapsed:Float) {
+    if (FlxG.mouse.wheel != 0 && FlxG.mouse.overlaps(fileChangesBG)) fileChangesScroll += FlxG.mouse.wheel * 35;
+    var cam = fileChangesCamera;
+
+    var maxBound = Math.max(0, fileChangesGroup.height - (cam.height - (cameraPadding.y)));
+    fileChangesScroll = FlxMath.bound(fileChangesScroll, 0, maxBound);
+
+    cam.scroll.y = lerp(cam.scroll.y, fileChangesScroll, 0.15);
+}
+
+//endregion
+
+function selectionTime() {
+    trace("selectionTime");
+    if (!inputMenu) return;
+    inputMenu = false;
+    
+    // FlxTween.tween(fadeSpr, {alpha: 1}, 0.65, {ease: FlxEase.quadOut});
 }
 
 function makeSeperator(width:Int, heightMult:Int, color:FlxColor) {
@@ -299,4 +379,5 @@ function makeSeperator(width:Int, heightMult:Int, color:FlxColor) {
 function destroy() {
     if (FlxG.cameras.list.contains(commitInfoCamera)) FlxG.cameras.remove(commitInfoCamera, true);
     if (FlxG.cameras.list.contains(fileChangesCamera)) FlxG.cameras.remove(fileChangesCamera, true);
+    if (FlxG.cameras.list.contains(topCamera)) FlxG.cameras.remove(topCamera, true);
 }

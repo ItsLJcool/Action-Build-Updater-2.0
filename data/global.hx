@@ -102,7 +102,10 @@ function generateUpdateInformation(newestHash:String, hasArtifact:Bool) {
     var prNumber = messageCommit[0].split("(#");
     if (prNumber.length <= 1) prNumber = null;
     else prNumber = prNumber.pop().split(")");
-    if (prNumber != null) commitTitle = "Pull Request #"+prNumber.shift();
+    if (prNumber != null) {
+        prNumber = prNumber.shift();
+        commitTitle = "Pull Request #"+prNumber;
+    }
     else {
         var contributors = null;
         try {
