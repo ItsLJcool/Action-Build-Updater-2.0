@@ -12,11 +12,15 @@ import flixel.group.FlxTypedSpriteGroup;
 import openfl.display.BitmapData;
 import flixel.math.FlxRect;
 
+
 final FileUtil = new MultiThreadedScript(Paths.script("data/utils/FileUtil"), this);
+
+importScript("data/utils/UpdaterUtil");
+
+final possibleMusics = getUpdaterAudioPaths();
 
 var bg:FlxSprite = new FlxSprite().makeSolid(FlxG.width, FlxG.height, 0xFF5E446E);
 var topBG = new FlxSprite().loadGraphic(Paths.image("updater/menuUpdater"));
-
 
 var roundedEdges:Int = 12;
 var cameraPadding:FlxPoint = FlxPoint.get(35, 1);
@@ -98,6 +102,11 @@ function create() {
     fadeSpr.camera = topCamera;
     add(fadeSpr);
 
+    if (FlxG.sound.music == null) {
+        var randomMusic = FlxG.random.getObject(possibleMusics);
+        CoolUtil.playMusic(Paths.music(randomMusic), true, 0);
+        FlxG.sound.music.fadeIn(2, 0, 0.7);
+    }
 }
 
 var colorFormatting = [
@@ -326,6 +335,14 @@ function update(elapsed:Float) {
     }
     
     if (controls.ACCEPT) selectionTime();
+
+    if (FlxG.keys.justPressed.SPACE && inputMenu) {
+        inputMenu = false;
+        new FlxTimer().start(0.15, () -> {
+            inputMenu = true;
+        });
+        // CoolUtil.openURL()
+    }
 
     // if (FlxG.keys.justPressed.K) FlxTween.tween(window, {opacity: 0.5}, 0.5, {ease: FlxEase.expoInOut});
 
