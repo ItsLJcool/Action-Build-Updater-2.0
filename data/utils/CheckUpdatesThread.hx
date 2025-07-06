@@ -90,9 +90,10 @@ function generateUpdateInformation(newestHash:String, hasArtifact:Bool, ?onCompl
     }
 
     // fuck off
-    var prNumber = messageCommit[0].split("(#");
+    var prNumber = messageCommit[0].split("#");
     if (prNumber.length <= 1) prNumber = null;
-    else prNumber = prNumber.pop().split(")");
+    else prNumber = prNumber.pop().split(" ");
+    if (prNumber != null) prNumber = prNumber.pop().split(")");
     if (prNumber != null) {
         prNumber = prNumber.shift();
         commitTitle = "Pull Request #"+prNumber;

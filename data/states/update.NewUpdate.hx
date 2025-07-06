@@ -8,6 +8,7 @@ import funkin.backend.scripting.MultiThreadedScript;
 import openfl.geom.ColorTransform;
 
 import flixel.group.FlxTypedSpriteGroup;
+import funkin.backend.MusicBeatState;
 
 import openfl.display.BitmapData;
 import flixel.math.FlxRect;
@@ -19,6 +20,8 @@ importScript("data/utils/UpdaterUtil");
 
 final possibleMusics = getUpdaterAudioPaths();
 
+var bgBgColor = 0xFF4D2A62;
+var bgBg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, bgBgColor);
 var bg:FlxSprite = new FlxSprite().makeSolid(FlxG.width, FlxG.height, 0xFF5E446E);
 var topBG = new FlxSprite().loadGraphic(Paths.image("updater/menuUpdater"));
 
@@ -41,16 +44,18 @@ selectionBG.alpha = 0.5;
 
 var commitGroup = new FlxTypedSpriteGroup();
 var fileChangesGroup = new FlxTypedSpriteGroup();
+var selectionGroup = new FlxTypedSpriteGroup();
 
-var topCamera = new FlxCamera();
-topCamera.bgColor = 0;
 function create() {
 
     FlxG.mouse.visible = true;
 
     FlxG.cameras.add(commitInfoCamera, false);
     FlxG.cameras.add(fileChangesCamera, false);
-    FlxG.cameras.add(topCamera, false);
+
+    bgBg.screenCenter();
+    bgBg.scrollFactor.set();
+    add(bgBg);
 
     bg.screenCenter();
     bg.scrollFactor.set();
@@ -67,21 +72,22 @@ function create() {
     commitInformationBG.x = FlxG.width * 0.03;
     add(commitInformationBG);
 
-    commitInfoCamera.x = commitInformationBG.x + (cameraPadding.x * 0.5);
-    commitInfoCamera.y = commitInformationBG.y + (cameraPadding.y * 0.5);
+    commitInformationBG.onDraw = (spr) -> {
+        commitInfoCamera.x = spr.x + (cameraPadding.x * 0.5);
+        commitInfoCamera.y = spr.y + (cameraPadding.y * 0.5);
+        spr.draw();
+    }
 
     add_roundedShader(fileChangesBG, roundedEdges);
     fileChangesBG.x = (FlxG.width - fileChangesBG.width) * 0.95;
     fileChangesBG.y = commitInformationBG.y;
     add(fileChangesBG);
 
-    fileChangesCamera.x = fileChangesBG.x + (cameraPadding.x * 0.5);
-    fileChangesCamera.y = fileChangesBG.y + (cameraPadding.y * 0.5);
-
-    add_roundedShader(selectionBG, roundedEdges);
-    selectionBG.x = fileChangesBG.x;
-    selectionBG.y = FlxG.height - selectionBG.height - 20;
-    add(selectionBG);
+    fileChangesBG.onDraw = (spr) -> {
+        fileChangesCamera.x = spr.x + (cameraPadding.x * 0.5);
+        fileChangesCamera.y = spr.y + (cameraPadding.y * 0.5);
+        spr.draw();
+    }
 
     commitGroup.camera = commitInfoCamera;
     add(commitGroup);
@@ -91,16 +97,16 @@ function create() {
     add(fileChangesGroup);
     initFileChangesInfo(fileChangesGroup);
 
-    initSelection();
+    add(selectionGroup);
+
+    add_roundedShader(selectionBG, roundedEdges);
+    selectionBG.x = fileChangesBG.x;
+    selectionBG.y = FlxG.height - selectionBG.height - 20;
+    selectionGroup.add(selectionBG);
+    
+    initSelection(selectionGroup);
 
     trace("hasArtifact: " + updateInformation.hasArtifact);
-
-    fadeSpr = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
-    fadeSpr.alpha = 0;
-    fadeSpr.screenCenter();
-    fadeSpr.scrollFactor.set();
-    fadeSpr.camera = topCamera;
-    add(fadeSpr);
 
     if (FlxG.sound.music == null) {
         var randomMusic = FlxG.random.getObject(possibleMusics);
@@ -163,7 +169,7 @@ function initCommitInfo(group:FlxTypedSpriteGroup) {
         spr.colorTransform = oldColor;
         spr.setGraphicSize(prevSize.width, prevSize.height);
         spr.draw();
-    }
+    };
     
     FileUtil.call("loadImageFromUrl", [updateInformation.author.avatar_url, (bitmap) -> {
 		avatar.loadGraphic(bitmap);
@@ -274,7 +280,7 @@ function _addFileChanges(fileData:Dynamic, idx:Int, ?height:Int = 60) {
     return group;
 }
 
-function initSelection() {
+function initSelection(group:FlxTypedSpriteGroup) {
 
     var scaleFactor = 0.6;
     var textSize = 22;
@@ -284,42 +290,42 @@ function initSelection() {
     skipSpr.updateHitbox();
     skipSpr.x = selectionBG.x + 15;
     skipSpr.y = selectionBG.y + (selectionBG.height - skipSpr.height) * 0.5;
-    add(skipSpr);
+    group.add(skipSpr);
 
     var continueBack = new FlxText(0, 0, 0, "to skip\nthis update");
     continueBack.setFormat(Paths.font("Funkin.ttf"), textSize, FlxColor.WHITE, "left");
     continueBack.updateHitbox();
     continueBack.x = skipSpr.x + skipSpr.width + 10;
     continueBack.y = selectionBG.y + (selectionBG.height - continueBack.height) * 0.5;
-    add(continueBack);
+    group.add(continueBack);
 
     var enterSpr = new FlxSprite().loadGraphic(Paths.image("updater/enter"));
     enterSpr.scale.set(scaleFactor, scaleFactor);
     enterSpr.updateHitbox();
     enterSpr.x = continueBack.x + continueBack.width + 10;
     enterSpr.y = selectionBG.y + (selectionBG.height - enterSpr.height) * 0.5;
-    add(enterSpr);
+    group.add(enterSpr);
 
     var enterText = new FlxText(0, 0, 0, "to install\nthis update");
     enterText.setFormat(Paths.font("Funkin.ttf"), textSize, FlxColor.WHITE, "left");
     enterText.updateHitbox();
     enterText.x = enterSpr.x + enterSpr.width + 10;
     enterText.y = selectionBG.y + (selectionBG.height - enterText.height) * 0.5;
-    add(enterText);
+    group.add(enterText);
 
     var checkGithub = new FlxSprite().loadGraphic(Paths.image("updater/spc"));
     checkGithub.scale.set(scaleFactor, scaleFactor);
     checkGithub.updateHitbox();
     checkGithub.x = enterText.x + enterText.width + 10;
     checkGithub.y = selectionBG.y + (selectionBG.height - checkGithub.height) * 0.5;
-    add(checkGithub);
+    group.add(checkGithub);
 
     var checkGithubText = new FlxText(0, 0, 0, "to check\nfor updates");
     checkGithubText.setFormat(Paths.font("Funkin.ttf"), textSize, FlxColor.WHITE, "left");
     checkGithubText.updateHitbox();
     checkGithubText.x = checkGithub.x + checkGithub.width + 10;
     checkGithubText.y = selectionBG.y + (selectionBG.height - checkGithubText.height) * 0.5;
-    add(checkGithubText);
+    group.add(checkGithubText);
 
 }
 //endregion
@@ -334,14 +340,12 @@ function update(elapsed:Float) {
         FlxG.switchState(new BetaWarningState());
     }
     
-    if (controls.ACCEPT) selectionTime();
+    if (controls.ACCEPT && !FlxG.keys.justPressed.SPACE) selectionTime();
 
     if (FlxG.keys.justPressed.SPACE && inputMenu) {
         inputMenu = false;
-        new FlxTimer().start(0.15, () -> {
-            inputMenu = true;
-        });
-        // CoolUtil.openURL()
+        new FlxTimer().start(0.35, () -> inputMenu = true);
+        CoolUtil.openURL("https://github.com/CodenameCrew/CodenameEngine");
     }
 
     // if (FlxG.keys.justPressed.K) FlxTween.tween(window, {opacity: 0.5}, 0.5, {ease: FlxEase.expoInOut});
@@ -379,11 +383,25 @@ function updateFileChangesScroll(elapsed:Float) {
 //endregion
 
 function selectionTime() {
-    trace("selectionTime");
     if (!inputMenu) return;
     inputMenu = false;
     
-    // FlxTween.tween(fadeSpr, {alpha: 1}, 0.65, {ease: FlxEase.quadOut});
+    var ease = FlxEase.quadIn;
+    var time = 1;
+    
+    FlxTween.tween(commitInformationBG, {y: -commitInformationBG.height - commitInformationBG.y}, time, {ease: ease});
+    FlxTween.tween(fileChangesBG, {x: FlxG.width + fileChangesBG.x}, time, {ease: ease, startDelay: 0.1});
+    FlxTween.tween(selectionGroup, {y: FlxG.height + selectionGroup.y}, time, {ease: ease, startDelay: 0.2});
+
+    FlxTween.tween(bg, {alpha: 0}, time, {ease: FlxEase.quadInOut});
+    
+    new FlxTimer().start(time + 0.1, () -> {
+        MusicBeatState.skipTransIn = MusicBeatState.skipTransOut = true;
+        FlxG.switchState(new ModState("update.CommenceUpdate", {
+            newBgColor: bgBgColor,
+        }));
+    });
+    
 }
 
 function makeSeperator(width:Int, heightMult:Int, color:FlxColor) {
@@ -396,5 +414,4 @@ function makeSeperator(width:Int, heightMult:Int, color:FlxColor) {
 function destroy() {
     if (FlxG.cameras.list.contains(commitInfoCamera)) FlxG.cameras.remove(commitInfoCamera, true);
     if (FlxG.cameras.list.contains(fileChangesCamera)) FlxG.cameras.remove(fileChangesCamera, true);
-    if (FlxG.cameras.list.contains(topCamera)) FlxG.cameras.remove(topCamera, true);
 }
