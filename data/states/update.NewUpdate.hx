@@ -46,9 +46,15 @@ var commitGroup = new FlxTypedSpriteGroup();
 var fileChangesGroup = new FlxTypedSpriteGroup();
 var selectionGroup = new FlxTypedSpriteGroup();
 
+
+var prev_mouseVisible = false;
+var prev_autoPause = false;
 function create() {
+    prev_autoPause = FlxG.autoPause;
+    prev_mouseVisible = FlxG.mouse.visible;
 
     FlxG.mouse.visible = true;
+    FlxG.autoPause = false;
 
     FlxG.cameras.add(commitInfoCamera, false);
     FlxG.cameras.add(fileChangesCamera, false);
@@ -106,12 +112,10 @@ function create() {
     
     initSelection(selectionGroup);
 
-    trace("hasArtifact: " + updateInformation.hasArtifact);
-
     if (FlxG.sound.music == null) {
         var randomMusic = FlxG.random.getObject(possibleMusics);
         CoolUtil.playMusic(Paths.music(randomMusic), true, 0);
-        FlxG.sound.music.fadeIn(2, 0, 0.7);
+        FlxG.sound.music.fadeIn(1.65, 0, 0.7);
     }
 }
 
@@ -332,11 +336,16 @@ function initSelection(group:FlxTypedSpriteGroup) {
 
 
 var inputMenu:Bool = true;
+var inputBuffer:Bool = false;
 function update(elapsed:Float) {
     avatar?.shader?.iTime += elapsed;
+    
+    if (!inputBuffer) return inputBuffer = true;
 
     if (controls.BACK && inputMenu) {
         inputMenu = false;
+        FlxG.mouse.visible = prev_mouseVisible;
+        FlxG.autoPause = prev_autoPause;
         FlxG.switchState(new BetaWarningState());
     }
     
@@ -347,8 +356,6 @@ function update(elapsed:Float) {
         new FlxTimer().start(0.35, () -> inputMenu = true);
         CoolUtil.openURL("https://github.com/CodenameCrew/CodenameEngine");
     }
-
-    // if (FlxG.keys.justPressed.K) FlxTween.tween(window, {opacity: 0.5}, 0.5, {ease: FlxEase.expoInOut});
 
     // bg?.shader?.iTime += elapsed;
 
@@ -382,9 +389,18 @@ function updateFileChangesScroll(elapsed:Float) {
 
 //endregion
 
-function selectionTime() {
+function selectionTime(forceUpdate:Bool = false) {
+    var forceUpdate = forceUpdate ?? false;
     if (!inputMenu) return;
     inputMenu = false;
+
+    if (!forceUpdate && !updateInformation.hasArtifact) {
+        persistentUpdate = false;
+        persistentDraw = true;
+        openSubState(new ModSubState("update.ArtifactMissing"));
+        inputMenu = true;
+        return;
+    }
     
     var ease = FlxEase.quadIn;
     var time = 1;

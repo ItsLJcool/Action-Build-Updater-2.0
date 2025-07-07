@@ -149,14 +149,15 @@ function updateInstallProgress(?percent:Float, ?averagePing:Int) {
     progressRect.set(0, 0, progressBar.width*percent, progressBar.height);
 }
 
-function updateZipProgress(?percent:Float) {
-    var percent = percent ?? 0;
+function updateZipProgress() {
+    var percent = zipProgress.percentage ?? 0;
     progressText.text = Std.string(Math.floor(percent*100)) + "%";
     progressText.x = progressBar.x + progressBar.width + 10;
     progressText.y = progressBar.y + (progressBar.height - progressText.height) * 0.5;
     progressText.updateHitbox();
 
-    progressInformationText.text = "Extracting Zip!\nZip Saved at ( "+zipPath+" )";
+    var textDisplay = (zipProgress.fileCount == 0) ? "Gathering Zip Information... Please wait.\nZip saved at ( "+zipPath+" )" : "Extracting Zip!\n" + zipProgress.curFile + " / " + zipProgress.fileCount;
+    progressInformationText.text = textDisplay;
     progressInformationText.x = progressBar.x + (progressBar.width - progressInformationText.width) * 0.5;
     progressInformationText.y = progressBar.y - progressInformationText.height - 50;
     progressInformationText.updateHitbox();
@@ -168,7 +169,7 @@ var isDoneUnzipping = false;
 function update(elapsed:Float) {
     if (controls.BACK) FlxG.switchState(new ModState("update.NewUpdate"));
 
-    if (zipProgress != null && !zipProgress?.done) updateZipProgress(zipProgress.percentage);
+    if (zipProgress != null && !zipProgress?.done) updateZipProgress();
     if (zipProgress?.done && !isDoneUnzipping) {
         isDoneUnzipping = true;
         updateZipProgress(1);
@@ -176,14 +177,13 @@ function update(elapsed:Float) {
     }
 }
 
-var zipReader:ZipReader = null;
 var zipProgress:ZipProgress = null;
 var zipPath = "./.temp/Codename Engine "+os+".zip";
 #if !windows zipPath = "./Action Build CodenameEngine for "+os+".zip"; #end
 function extractZip(data:ByteArrayData) {
     
     CoolUtil.safeSaveFile(zipPath, data);
-    var size = CoolUtil.getSizeString(data.length);
+    // var size = CoolUtil.getSizeString(data.length);
     
     #if !ALLOW_MULTITHREADING
         // not tested!!

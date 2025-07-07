@@ -73,3 +73,15 @@ function preStateSwitch() {
 function destroy() {
     checkForActionUpdates = add_roundedShader = updateInformation = null;
 }
+
+function focusLost() {
+    if (!needsUpdate) return;
+
+    FlxG.sound?.music?.fadeOut(0.65, 0.2);
+}
+
+function focusGained() {
+    if (!needsUpdate) return;
+
+    FlxG.sound?.music?.fadeIn(0.65, FlxG.sound.music.volume, 0.7);
+}
