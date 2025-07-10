@@ -21,6 +21,8 @@ import funkin.options.OptionsMenu;
 var needsUpdate = false;
 var preloadCheckUpdate:Bool = true;
 
+var archivesPath = "./.archives/";
+
 function new() {
 
     updateInformation = {};
@@ -30,6 +32,9 @@ function new() {
     
     CoolUtil.deleteFolder('./.cache');
     CoolUtil.safeAddAttributes('./.cache/', FileAttribute.HIDDEN); // 0x2
+    
+    CoolUtil.addMissingFolders(archivesPath);
+    CoolUtil.safeAddAttributes(archivesPath, FileAttribute.HIDDEN); // 0x2
 }
 
 //region checking for updates
@@ -77,11 +82,11 @@ function destroy() {
 function focusLost() {
     if (!needsUpdate) return;
 
-    FlxG.sound?.music?.fadeOut(0.65, 0.2);
+    FlxG.sound.music?.fadeOut(0.65, 0.2);
 }
 
 function focusGained() {
     if (!needsUpdate) return;
 
-    FlxG.sound?.music?.fadeIn(0.65, FlxG.sound.music.volume, 0.7);
+    FlxG.sound.music?.fadeIn(0.65, FlxG.sound.music?.volume, 0.7);
 }

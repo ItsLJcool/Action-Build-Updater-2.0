@@ -14,6 +14,13 @@ import openfl.display.BitmapData;
 import flixel.math.FlxRect;
 
 
+
+import funkin.backend.utils.ZipUtil;
+import funkin.backend.utils.ZipProgress;
+import funkin.backend.utils.ZipReader;
+
+import funkin.backend.scripting.GlobalScript;
+
 final FileUtil = new MultiThreadedScript(Paths.script("data/utils/FileUtil"), this);
 
 importScript("data/utils/UpdaterUtil");

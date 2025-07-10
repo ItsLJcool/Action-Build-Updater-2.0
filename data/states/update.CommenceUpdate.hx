@@ -9,10 +9,108 @@ import funkin.backend.utils.ZipUtil;
 import funkin.backend.utils.ZipProgress;
 import funkin.backend.utils.ZipReader;
 
+import sys.FileSystem;
+import Date;
+
+import funkin.backend.utils.FileAttribute;
+import funkin.backend.scripting.GlobalScript;
+
+class ProgressBar extends FlxBasic {
+
+    public var color:FlxColor = FlxColor.WHITE;
+    public var progressColor:FlxColor = FlxColor.RED;
+
+    public var progress:Float = 0;
+
+    public var bar:FlxSprite;
+    private var percentageText:FlxText;
+    private var informationText:FlxText;
+
+    public var infoText:String = "";
+
+    public var informationOffset:Float = 15;
+
+    private var progressRect:FlxRect;
+
+    public var width:Float = 150;
+
+    public var x:Float = 0;
+    public var y:Float = 0;
+
+    public var onUpdate:Float->Void;
+    public var onComplete:Void->Void;
+
+    public function new(width:Float, ?infoText:String, ?onUpdate:Float->Void, ?onComplete:Void->Void) {
+        this.width = width ?? 150;
+
+        this.infoText = infoText ?? "";
+
+        this.onUpdate = onUpdate ?? (percent) -> {};
+        this.onComplete = onComplete ?? () -> {};
+
+        bar = new FlxSprite().makeGraphic(width, 8, FlxColor.WHITE);
+
+        percentageText = new FlxText(0, 0, 0, "0%", 24);
+
+        informationText = new FlxText(0, 0, 0, this.infoText, 24);
+
+        this.progressRect = FlxRect.get(0, 0, 0, bar.height);
+
+        this.x = 0;
+        this.y = 0;
+    }
+
+    override public function update(elapsed:Float) {
+        super.update(elapsed);
+        if (bar.exists) bar.update(elapsed);
+        if (percentageText.exists) percentageText.update(elapsed);
+        if (informationText.exists) informationText.update(elapsed);
+
+        progressRect.set(0, 0, bar.width*progress, bar.height);
+    }
+
+    override public function draw() {
+        super.draw();
+        if (bar.visible && bar.active) {
+            bar.setPosition(x, y);
+            bar.setGraphicSize(width, bar.height);
+
+            bar.color = color;
+            bar.draw();
+
+            bar.clipRect = progressRect;
+            bar.color = progressColor;
+            bar.draw();
+            
+            bar.clipRect = null;
+        }
+
+        if (percentageText.visible && percentageText.active) {
+            percentageText.text = Std.string(Math.floor(progress*100)) + "%";
+            percentageText.setPosition(bar.x + bar.width + 10, bar.y + (bar.height - percentageText.height) * 0.5);
+            percentageText.updateHitbox();
+            percentageText.draw();
+        }
+
+        if (informationText.visible && informationText.active) {
+            if (informationText.text != this.infoText) informationText.text = this.infoText;
+            informationText.setPosition(bar.x + (bar.width - informationText.width) * 0.5, bar.y - informationText.height - informationOffset);
+            informationText.updateHitbox();
+            informationText.draw();
+        }
+    }
+}
+
 final CustomHttpUtil = new MultiThreadedScript(Paths.script("data/utils/HttpUtil"), this);
 
 var os = #if windows "windows" #elseif mac "macos" #elseif linux "linux" #end;
 var link = "https://nightly.link/CodenameCrew/CodenameEngine/workflows/"+os+"/main/Codename%20Engine.zip";
+
+var installingColor = 0xFFDCB6E2;
+var progressColor = 0xFFA361B3;
+
+var extractingColor = 0xFF752888;
+var safteyStepColor = 0xFF49E456;
 
 //region ui variables
 var roundedEdges:Int = 20;
@@ -23,26 +121,19 @@ var topBG = new FlxSprite().loadGraphic(Paths.image("updater/menuUpdater"));
 var progressBg = new FlxSprite().makeGraphic(FlxG.width * 0.85, FlxG.height * 0.6, 0xFF000000);
 progressBg.alpha = 0.35;
 
-var progressBar = new FlxSprite().makeGraphic(progressBg.width * 0.65, 8, 0xFFFFFFFF);
-var progressRect = FlxRect.get(0, 0, 0, progressBar.height);
+var topProgress = new ProgressBar(progressBg.width * 0.65);
+topProgress.color = installingColor;
+topProgress.progressColor = progressColor;
 
-var progressText = new FlxText(0, 0, 0, "0%");
-progressText.setFormat(Paths.font("Funkin.ttf"), 24, FlxColor.WHITE, "left");
-progressText.updateHitbox();
-
-var progressInformationText = new FlxText(0, 0, 0, "your pc gonna explode!!");
-progressInformationText.setFormat(Paths.font("Funkin.ttf"), 32, FlxColor.WHITE, "center");
-progressInformationText.updateHitbox();
+var bottomProgress = new ProgressBar(topProgress.width);
+bottomProgress.color = installingColor;
+bottomProgress.progressColor = safteyStepColor;
 
 var lazyCamera = new FlxCamera();
 lazyCamera.bgColor = 0;
 lazyCamera.alpha = 0;
 
 //endregion
-
-var installingColor = 0xFFDCB6E2;
-var progressColor = 0xFFA361B3;
-var extractingColor = 0xFF752888;
 
 var prev_ALLOW_DEBUG_RELOAD = MusicBeatState.ALLOW_DEBUG_RELOAD;
 function create() {
@@ -62,35 +153,39 @@ function create() {
     topBG.scrollFactor.set();
     topBG.camera = FlxG.camera;
     add(topBG);
-
+    
     add_roundedShader(progressBg, roundedEdges);
     progressBg.screenCenter();
     progressBg.scrollFactor.set();
     add(progressBg);
 
-    add_roundedShader(progressBar, 5);
-    progressBar.x = progressBg.x + (progressBg.width - progressBar.width) * 0.5;
-    progressBar.y = progressBg.y + (progressBg.height - progressBar.height) * 0.65;
-    add(progressBar);
-    progressBar.onDraw = (spr) -> {
-        spr.color = installingColor; // not filled
-        spr.draw();
+    topProgress.x = progressBg.x + (progressBg.width - topProgress.width) * 0.5;
+    topProgress.y = progressBg.y + (progressBg.height - topProgress.bar.height) * 0.3;
+    add(topProgress);
+    
+    bottomProgress.x = progressBg.x + (progressBg.width - bottomProgress.width) * 0.5;
+    bottomProgress.y = progressBg.y + (progressBg.height - bottomProgress.bar.height) * 0.8;
+    add(bottomProgress);
 
-        spr.clipRect = progressRect;
-        spr.color = progressColor; // filled
-        spr.draw();
-
-        spr.clipRect = null;
+    for (progress in [topProgress, bottomProgress]) {
+        add_roundedShader(progress.bar, 5);
+        progress.percentageText.setFormat(Paths.font("Funkin.ttf"), 24, FlxColor.WHITE, "left");
+        progress.informationText.setFormat(Paths.font("Funkin.ttf"), 32, FlxColor.WHITE, "center");
     }
 
-    add(progressText);
+    // updateInstallProgress();
 
-    add(progressInformationText);
-    updateInstallProgress();
+    FlxTween.tween(lazyCamera, {alpha: 1}, 0.5, {ease: FlxEase.quadInOut, onComplete: () -> {
+        doUpdate();
+        safelyZipCNE();
+    }});
 
-    FlxTween.tween(lazyCamera, {alpha: 1}, 0.5, {ease: FlxEase.quadInOut});
+}
 
-    doUpdate();
+function customReduce(arr, initial, callback) {
+    var accumulator = initial;
+    for (item in arr) accumulator = callback(accumulator, item);
+    return accumulator;
 }
 
 function doUpdate() {
@@ -121,82 +216,87 @@ function doUpdate() {
         // for now
         MusicBeatState.ALLOW_DEBUG_RELOAD = prev_ALLOW_DEBUG_RELOAD;
 
-        installingColor = progressColor;
-        progressColor = extractingColor;
         updateInstallProgress(0, null);
         extractZip(data);
     }]);
 }
 
-function customReduce(arr, initial, callback) {
-    var accumulator = initial;
-    for (item in arr) accumulator = callback(accumulator, item);
-    return accumulator;
-}
-
 function updateInstallProgress(?percent:Float, ?averagePing:Int) {
-    var percent = percent ?? 0;
-    progressText.text = Std.string(Math.floor(percent*100)) + "%";
-    progressText.x = progressBar.x + progressBar.width + 10;
-    progressText.y = progressBar.y + (progressBar.height - progressText.height) * 0.5;
-    progressText.updateHitbox();
-
-    progressInformationText.text = "Average ping: " + (averagePing ?? "??") + "ms";
-    progressInformationText.x = progressBar.x + (progressBar.width - progressInformationText.width) * 0.5;
-    progressInformationText.y = progressBar.y - progressInformationText.height - 50;
-    progressInformationText.updateHitbox();
-
-    progressRect.set(0, 0, progressBar.width*percent, progressBar.height);
+    topProgress.progress = percent ?? 0;
+    topProgress.infoText = "Average ping: " + (averagePing ?? "??") + "ms";
 }
 
-function updateZipProgress() {
-    var percent = zipProgress.percentage ?? 0;
-    progressText.text = Std.string(Math.floor(percent*100)) + "%";
-    progressText.x = progressBar.x + progressBar.width + 10;
-    progressText.y = progressBar.y + (progressBar.height - progressText.height) * 0.5;
-    progressText.updateHitbox();
+function updateZipProgress(percent:Float) {
+    topProgress.progress = percent ?? 0;
+    topProgress.infoText = (downloadZipProgress.fileCount == 0) ? "Gathering Zip Information... Please wait.\nZip saved at ( "+zipPath+" )" : "Extracting Zip!\n" + downloadZipProgress.curFile + " / " + downloadZipProgress.fileCount;
+}
 
-    var textDisplay = (zipProgress.fileCount == 0) ? "Gathering Zip Information... Please wait.\nZip saved at ( "+zipPath+" )" : "Extracting Zip!\n" + zipProgress.curFile + " / " + zipProgress.fileCount;
-    progressInformationText.text = textDisplay;
-    progressInformationText.x = progressBar.x + (progressBar.width - progressInformationText.width) * 0.5;
-    progressInformationText.y = progressBar.y - progressInformationText.height - 50;
-    progressInformationText.updateHitbox();
-
-    progressRect.set(0, 0, progressBar.width*percent, progressBar.height);
+function updateArchivesProgress(percent:Float) {
+    bottomProgress.progress = percent ?? 0;
+    var fileCount = (bottomProgress.progress >= 1) ? safteyZipProgress.fileCount+" / "+safteyZipProgress.fileCount : safteyZipProgress.curFile+" / "+safteyZipProgress.fileCount;
+    bottomProgress.infoText = "Safely Zipping your current Codename Engine...\n\n"+fileCount;
 }
 
 var isDoneUnzipping = false;
-function update(elapsed:Float) {
-    if (controls.BACK) FlxG.switchState(new ModState("update.NewUpdate"));
+var isDoneArchiving = false;
 
-    if (zipProgress != null && !zipProgress?.done) updateZipProgress();
-    if (zipProgress?.done && !isDoneUnzipping) {
-        isDoneUnzipping = true;
-        updateZipProgress(1);
-        completed();
+var isCompleted = false;
+function update(elapsed:Float) {
+    if (downloadZipProgress != null) {
+        if (!downloadZipProgress.done) updateZipProgress(downloadZipProgress.percentage);
+        else if (!isDoneUnzipping) {
+            isDoneUnzipping = true;
+            updateZipProgress(1);
+        }
     }
+
+    if (safteyZipProgress != null) {
+        if (!safteyZipProgress.done) updateArchivesProgress(safteyZipProgress.percentage);
+        else if (!isDoneArchiving) {
+            isDoneArchiving = true;
+            updateArchivesProgress(1);
+        }
+    }
+
+    if (isDoneUnzipping && isDoneArchiving && !isCompleted) completed();
 }
 
-var zipProgress:ZipProgress = null;
+var downloadZipProgress:ZipProgress = null;
 var zipPath = "./.temp/Codename Engine "+os+".zip";
 #if !windows zipPath = "./Action Build CodenameEngine for "+os+".zip"; #end
 function extractZip(data:ByteArrayData) {
+    topProgress.color = progressColor;
+    topProgress.progressColor = extractingColor;
     
     CoolUtil.safeSaveFile(zipPath, data);
     // var size = CoolUtil.getSizeString(data.length);
-    
-    #if !ALLOW_MULTITHREADING
-        // not tested!!
-        completed();
-    #end
 
     #if windows
-        zipProgress = ZipUtil.uncompressZipAsync(ZipUtil.openZip(zipPath), "./.cache/");
+        downloadZipProgress = ZipUtil.uncompressZipAsync(ZipUtil.openZip(zipPath), "./.cache/");
     #else
-        completed();
+        isDoneUnzipping = true;
     #end
 }
 
+var safteyZipProgress:ZipProgress = null;
+function safelyZipCNE() {
+    // preventing statics as much as possible sorry.
+    var archivesPath = GlobalScript.scripts.get("archivesPath");
+    CoolUtil.addMissingFolders(archivesPath);
+    CoolUtil.safeAddAttributes(archivesPath, FileAttribute.HIDDEN); // 0x2
+
+    var whitelist = ["mods", "addons"];
+
+    var dateNow = Date.now();
+    var dateTime = dateNow.getFullYear()+"-"+dateNow.getMonth()+"-"+dateNow.getDay()+" - "+dateNow.getHours()+"-"+dateNow.getMinutes()+"-"+dateNow.getSeconds();
+
+    // using addons to test zipping
+    safteyZipProgress = ZipUtil.writeFolderToZipAsync(ZipUtil.createZipFile(archivesPath+dateTime+".zip"), "./addons", null, null, whitelist);
+}
+
 function completed() {
-    trace("coolio its completed");
+    if (!isCompleted) return;
+    isCompleted = true;
+
+    trace("its completed");
 }
