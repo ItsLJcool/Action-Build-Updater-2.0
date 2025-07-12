@@ -22,19 +22,35 @@ var needsUpdate = false;
 var preloadCheckUpdate:Bool = true;
 
 var archivesPath = "./.archives/";
+var args = [];
+
+var movingFilesTime:Bool = false;
 
 function new() {
+    for (arg in Sys.args()) {
+        if (StringTools.startsWith(arg, "/")) args.push('-'+arg.substr(1));
+        else args.push(arg);
+    }
 
     updateInformation = {};
-
+    
     FlxG.save.data.autoUpdate ??= true;
+    FlxG.save.data.archiveFolders ??= false;
     FlxG.save.flush();
+    
+    if (args.contains("update")) {
+        movingFilesTime = MusicBeatState.skipTransIn = MusicBeatState.skipTransOut = true;
+        return;
+    }
     
     CoolUtil.deleteFolder('./.cache');
     CoolUtil.safeAddAttributes('./.cache/', FileAttribute.HIDDEN); // 0x2
     
     CoolUtil.addMissingFolders(archivesPath);
     CoolUtil.safeAddAttributes(archivesPath, FileAttribute.HIDDEN); // 0x2
+    
+    if (FileSystem.exists("temp.exe")) FileSystem.deleteFile('temp.exe');
+
 }
 
 //region checking for updates
@@ -67,12 +83,16 @@ static function centerToCamera(sprite:FlxSprite) {
 //endregion
 
 function preStateSwitch() {
+
     if (preloadCheckUpdate) {
         preloadCheckUpdate = false;
         MusicBeatState.skipTransIn = MusicBeatState.skipTransOut = true;
         FlxG.game._requestedState = new ModState("update.PreloadCheck");
         return;
     }
+    
+    if (movingFilesTime) return FlxG.game._requestedState = new ModState("update.MovingFiles");
+    
 }
 
 function destroy() {

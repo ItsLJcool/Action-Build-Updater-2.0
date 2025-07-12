@@ -10,7 +10,11 @@ import funkin.backend.utils.ZipProgress;
 import funkin.backend.utils.ZipReader;
 
 import sys.FileSystem;
+import sys.io.File;
+import sys.io.Process;
 import Date;
+
+import Sys;
 
 import funkin.backend.utils.FileAttribute;
 import funkin.backend.scripting.GlobalScript;
@@ -159,27 +163,33 @@ function create() {
     progressBg.scrollFactor.set();
     add(progressBg);
 
-    topProgress.x = progressBg.x + (progressBg.width - topProgress.width) * 0.5;
-    topProgress.y = progressBg.y + (progressBg.height - topProgress.bar.height) * 0.3;
-    add(topProgress);
-    
-    bottomProgress.x = progressBg.x + (progressBg.width - bottomProgress.width) * 0.5;
-    bottomProgress.y = progressBg.y + (progressBg.height - bottomProgress.bar.height) * 0.8;
-    add(bottomProgress);
+    var topY = (FlxG.save.data.archiveFolders) ? 0.3 : 0.6;
+    var bottomY = 0.8;
 
+    topProgress.x = progressBg.x + (progressBg.width - topProgress.width) * 0.5;
+    topProgress.y = progressBg.y + (progressBg.height - topProgress.bar.height) * topY;
+    add(topProgress);
+
+    if (FlxG.save.data.archiveFolders) {
+        bottomProgress.x = progressBg.x + (progressBg.width - bottomProgress.width) * 0.5;
+        bottomProgress.y = progressBg.y + (progressBg.height - bottomProgress.bar.height) * bottomY;
+        add(bottomProgress);
+        updateArchivesProgress();
+    }
+    
     for (progress in [topProgress, bottomProgress]) {
         add_roundedShader(progress.bar, 5);
         progress.percentageText.setFormat(Paths.font("Funkin.ttf"), 24, FlxColor.WHITE, "left");
         progress.informationText.setFormat(Paths.font("Funkin.ttf"), 32, FlxColor.WHITE, "center");
     }
 
-    // updateInstallProgress();
+    updateInstallProgress();
 
     FlxTween.tween(lazyCamera, {alpha: 1}, 0.5, {ease: FlxEase.quadInOut, onComplete: () -> {
-        doUpdate();
-        safelyZipCNE();
+        // doUpdate();
+        extractZip(null);
+        if (FlxG.save.data.archiveFolders) archiveZip();
     }});
-
 }
 
 function customReduce(arr, initial, callback) {
@@ -226,19 +236,19 @@ function updateInstallProgress(?percent:Float, ?averagePing:Int) {
     topProgress.infoText = "Average ping: " + (averagePing ?? "??") + "ms";
 }
 
-function updateZipProgress(percent:Float) {
+function updateZipProgress(?percent:Float) {
     topProgress.progress = percent ?? 0;
     topProgress.infoText = (downloadZipProgress.fileCount == 0) ? "Gathering Zip Information... Please wait.\nZip saved at ( "+zipPath+" )" : "Extracting Zip!\n" + downloadZipProgress.curFile + " / " + downloadZipProgress.fileCount;
 }
 
-function updateArchivesProgress(percent:Float) {
+function updateArchivesProgress(?percent:Float) {
     bottomProgress.progress = percent ?? 0;
     var fileCount = (bottomProgress.progress >= 1) ? safteyZipProgress.fileCount+" / "+safteyZipProgress.fileCount : safteyZipProgress.curFile+" / "+safteyZipProgress.fileCount;
     bottomProgress.infoText = "Safely Zipping your current Codename Engine...\n\n"+fileCount;
 }
 
 var isDoneUnzipping = false;
-var isDoneArchiving = false;
+var isDoneArchiving = (!FlxG.save.data.archiveFolders);
 
 var isCompleted = false;
 function update(elapsed:Float) {
@@ -258,7 +268,7 @@ function update(elapsed:Float) {
         }
     }
 
-    if (isDoneUnzipping && isDoneArchiving && !isCompleted) completed();
+    if (isDoneUnzipping && isDoneArchiving) completed();
 }
 
 var downloadZipProgress:ZipProgress = null;
@@ -268,7 +278,7 @@ function extractZip(data:ByteArrayData) {
     topProgress.color = progressColor;
     topProgress.progressColor = extractingColor;
     
-    CoolUtil.safeSaveFile(zipPath, data);
+    if (data != null) CoolUtil.safeSaveFile(zipPath, data);
     // var size = CoolUtil.getSizeString(data.length);
 
     #if windows
@@ -279,7 +289,7 @@ function extractZip(data:ByteArrayData) {
 }
 
 var safteyZipProgress:ZipProgress = null;
-function safelyZipCNE() {
+function archiveZip() {
     // preventing statics as much as possible sorry.
     var archivesPath = GlobalScript.scripts.get("archivesPath");
     CoolUtil.addMissingFolders(archivesPath);
@@ -295,8 +305,22 @@ function safelyZipCNE() {
 }
 
 function completed() {
-    if (!isCompleted) return;
+    if (isCompleted) return;
     isCompleted = true;
 
-    trace("its completed");
+    // just in case for some fucking reason the exe is named differently.... also why tho 😭
+    var exeName:String = null;
+    for (item in FileSystem.readDirectory("./")) {
+        if (Path.extension(item) != "exe") continue;
+        exeName = item;
+        break;
+    }
+
+    File.copy(exeName, "temp.exe");
+    var done = () -> {
+        new Process('start /B temp.exe update', null);
+        Sys.exit(0);
+    };
+    if (window.opacity != null) return FlxTween.tween(window, {opacity: 0}, 1, {onComplete: done});
+    done();
 }
