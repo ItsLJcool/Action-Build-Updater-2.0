@@ -9,6 +9,7 @@ import StringTools;
 
 final UpdateThread = new MultiThreadedScript(Paths.script("data/utils/CheckUpdatesThread"), this);
 
+var fallbackState = data?.fallbackState ?? new BetaWarningState();
 function create() {
 
     updateText = new FlxText(0, 0, FlxG.width*0.65, "Checking for Updates...");
@@ -17,14 +18,14 @@ function create() {
     updateText.screenCenter();
     add(updateText);
 
-    var error = (e) -> {
-        if (e != null) __update("Failed to check for updates:\n\n" + e);
-        new FlxTimer().start(1, () -> FlxG.switchState(new BetaWarningState()));
-    };
-
-    var __update = (text) -> {
+    var updateInformation = (text) -> {
         updateTextInfo.doIt = true;
         updateTextInfo.text = text;
+    };
+
+    var error = (e) -> {
+        if (e != null) updateInformation("Failed to check for updates:\n\n" + e);
+        new FlxTimer().start(1, () -> FlxG.switchState(fallbackState));
     };
 
     var finishedComplete = () -> { FlxG.switchState(new ModState("update.NewUpdate")); };
@@ -33,19 +34,20 @@ function create() {
         var needsUpdate = (hash != null);
         if (needsUpdate) {
             GlobalScript.scripts.set("needsUpdate", needsUpdate);
-            __update("Generating Update Information...");
-            UpdateThread.call("generateUpdateInformation", [hash, (artifact != null), finishedComplete, __update, error]);
+            updateInformation("Generating Update Information...");
+            UpdateThread.call("generateUpdateInformation", [hash, (artifact != null), finishedComplete, updateInformation, error]);
         }
         else error(null);
     };
     
-    UpdateThread.call("checkForActionUpdates", [complete, __update, error]);
+    UpdateThread.call("checkForActionUpdates", [complete, updateInformation, error]);
 }
 
 var updateTextInfo = {
     doIt: false,
     text: "",
 };
+
 function update(elapsed:Float) {
     if (updateTextInfo?.doIt) {
         updateTextInfo.doIt = false;

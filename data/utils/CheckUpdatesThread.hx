@@ -28,7 +28,7 @@ function checkForActionUpdates(?onComplete:Void->Void, ?onUpdate:Void->Void, ?on
     }
 
     if (newestHash == null || StringTools.startsWith(newestHash, GitCommitMacro.commitHash)) {
-        onComplete(); // calling without any parameters so it will be null, meaning no update.
+        onComplete(null, null); // calling without any parameters so it will be null, meaning no update.?
         return;
     }
 

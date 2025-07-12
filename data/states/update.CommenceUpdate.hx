@@ -9,8 +9,11 @@ import funkin.backend.utils.ZipUtil;
 import funkin.backend.utils.ZipProgress;
 import funkin.backend.utils.ZipReader;
 
+import funkin.backend.utils.NativeAPI;
+
 import sys.FileSystem;
 import sys.io.File;
+import haxe.io.Path;
 import sys.io.Process;
 import Date;
 
@@ -186,8 +189,8 @@ function create() {
     updateInstallProgress();
 
     FlxTween.tween(lazyCamera, {alpha: 1}, 0.5, {ease: FlxEase.quadInOut, onComplete: () -> {
-        // doUpdate();
-        extractZip(null);
+        doUpdate();
+        // extractZip(null);
         if (FlxG.save.data.archiveFolders) archiveZip();
     }});
 }
@@ -308,19 +311,22 @@ function completed() {
     if (isCompleted) return;
     isCompleted = true;
 
-    // just in case for some fucking reason the exe is named differently.... also why tho 😭
-    var exeName:String = null;
-    for (item in FileSystem.readDirectory("./")) {
-        if (Path.extension(item) != "exe") continue;
-        exeName = item;
-        break;
-    }
+    var directory = #if windows "./.cache/" #else "./.temp/" #end;
+    topProgress.infoText = "Check your "+directory+" folder to copy your files over!\nDelete all folders\n\n(besides your `addons` and `mods` folders!)";
 
-    File.copy(exeName, "temp.exe");
-    var done = () -> {
-        new Process('start /B temp.exe update', null);
-        Sys.exit(0);
-    };
-    if (window.opacity != null) return FlxTween.tween(window, {opacity: 0}, 1, {onComplete: done});
+    NativeAPI.showMessageBox("Update Completed!", topProgress.infoText, 0x00000040);
+    FlxG.autoPause = false;
+
+    var done = () -> Sys.exit(0);
+    if (window.opacity != null) return FlxTween.tween(window, {opacity: 0}, 1, {startDelay: 5, onComplete: done});
     done();
+}
+
+var inFocus:Bool = false;
+function onFocusLost() {
+    inFocus = false;
+}
+
+function onFocus() {
+    inFocus = true;
 }
