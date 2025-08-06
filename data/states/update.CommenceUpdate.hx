@@ -48,6 +48,7 @@ class ProgressBar extends FlxBasic {
     public var onComplete:Void->Void;
 
     public function new(width:Float, ?infoText:String, ?onUpdate:Float->Void, ?onComplete:Void->Void) {
+        super(width);
         this.width = width ?? 150;
 
         this.infoText = infoText ?? "";
